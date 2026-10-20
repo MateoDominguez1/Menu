@@ -317,6 +317,24 @@ describe("plan y lista de compras sobre base real", () => {
     expect(mine.every((p) => p.validUntil === "2026-10-25" && !!p.sourceRef)).toBe(true);
   });
 
+  it("corrige los precios de Iper cargados antes de leer el PDF oficial, sin tocar los confirmados por el usuario", async () => {
+    const { applyReferenceData } = await import("@/db/seed");
+    const iper = (await m.db.select().from(m.s.stores)).find((x) => x.slug === "iper")!;
+    const [patate] = await m.db
+      .select()
+      .from(m.s.products)
+      .where(m.eq(m.s.products.name, "Patate a pasta gialla 2,5 kg"));
+    expect(patate.storeId).toBe(iper.id);
+    await m.db.delete(m.s.priceRecords).where(m.eq(m.s.priceRecords.productId, patate.id));
+    const base = { productId: patate.id, sourceKind: "flyer" as const, observedAt: "2026-10-20" };
+    await m.db.insert(m.s.priceRecords).values({ ...base, priceCents: 100, sourceRef: "tercero" });
+    await m.db.insert(m.s.priceRecords).values({ ...base, priceCents: 100, sourceRef: "mio", confirmedByUser: true });
+    await applyReferenceData(m.db);
+    const recs = await m.db.select().from(m.s.priceRecords).where(m.eq(m.s.priceRecords.productId, patate.id));
+    expect(recs.find((r) => r.sourceRef?.includes("PDF oficial"))?.priceCents).toBe(245);
+    expect(recs.find((r) => r.sourceRef === "mio")?.priceCents).toBe(100);
+  });
+
   it("agregar un producto de Iper con precio confirmado normaliza el tamano y alimenta la comparacion", async () => {
     const data = await (await import("./catalog")).loadCatalog();
     const iper = data.stores.find((x) => x.slug === "iper")!;

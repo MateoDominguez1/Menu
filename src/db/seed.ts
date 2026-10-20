@@ -112,6 +112,15 @@ export async function seedDatabase(db: Db): Promise<{ seeded: boolean }> {
  * Datos de referencia para bases que ya existian: actualiza la tienda Iper y agrega los productos
  * semilla que falten. Es idempotente y nunca pisa precios ni productos cargados por el usuario.
  */
+/**
+ * Correcciones de datos sembrados antes de leer el PDF oficial: un sitio de terceros daba las
+ * patatas a 1,00 EUR por 2,5 kg y las uvas a 2,79; el volantino dice 2,45 y 2,59.
+ */
+const KNOWN_FIXES = [
+  { product: "Patate a pasta gialla 2,5 kg", from: 100, to: 245, ref: "Volantino Iper La grande i 12-25 ott 2026 p.7 (PDF oficial): 0,98 EUR/kg, 2,45 EUR la bolsa; varia por local" },
+  { product: "Uva bianca senza semi 1 kg", from: 279, to: 259, ref: "Volantino Iper La grande i 12-25 ott 2026 p.7 (PDF oficial)" },
+];
+
 export async function applyReferenceData(db: Db): Promise<{ added: number }> {
   const stores = await db.select().from(s.stores);
   const iper = stores.find((x) => x.slug === "iper");
@@ -120,6 +129,27 @@ export async function applyReferenceData(db: Db): Promise<{ added: number }> {
   }
   const storeId = new Map(stores.map((x) => [x.slug, x.id]));
   const ingId = new Map((await db.select().from(s.ingredients)).map((i) => [i.name, i.id]));
+
+  if (iper) {
+    for (const fix of KNOWN_FIXES) {
+      const prods = await db
+        .select()
+        .from(s.products)
+        .where(and(eq(s.products.storeId, iper.id), eq(s.products.name, fix.product)));
+      for (const p of prods) {
+        await db
+          .update(s.priceRecords)
+          .set({ priceCents: fix.to, sourceRef: fix.ref })
+          .where(
+            and(
+              eq(s.priceRecords.productId, p.id),
+              eq(s.priceRecords.priceCents, fix.from),
+              eq(s.priceRecords.confirmedByUser, false),
+            ),
+          );
+      }
+    }
+  }
   let added = 0;
   for (const p of seedProducts) {
     const sid = storeId.get(p.store);

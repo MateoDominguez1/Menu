@@ -284,15 +284,15 @@ export const products: SeedProduct[] = [
   // Iper La grande i: promos del volantino 12-25 oct 2026. Los volantinos varian por local y solo traen ofertas.
   {
     store: "iper", ingredient: "Patata", name: "Patate a pasta gialla 2,5 kg", packSize: 2500, packUnit: "g",
-    price: { cents: 100, validUntil: "2026-10-25", observedAt: "2026-10-20", sourceKind: "flyer", sourceRef: "Volantino Iper La grande i 12-25 ott 2026 (anteprimavolantino.it); varia por local", isEstimate: false },
+    price: { cents: 245, validUntil: "2026-10-25", observedAt: "2026-10-20", sourceKind: "flyer", sourceRef: "Volantino Iper La grande i 12-25 ott 2026 p.7 (PDF oficial): 0,98 EUR/kg, 2,45 EUR la bolsa; varia por local", isEstimate: false },
   },
   {
     store: "iper", ingredient: "Champinones", name: "Funghi champignon 1 kg", packSize: 1000, packUnit: "g",
-    price: { cents: 249, validUntil: "2026-10-25", observedAt: "2026-10-20", sourceKind: "flyer", sourceRef: "Volantino Iper La grande i 12-25 ott 2026 (resumen en sitio de terceros, sin confirmar)", isEstimate: false },
+    price: { cents: 249, validUntil: "2026-10-25", observedAt: "2026-10-20", sourceKind: "flyer", sourceRef: "Volantino Iper La grande i 12-25 ott 2026 p.7 (PDF oficial)", isEstimate: false },
   },
   {
     store: "iper", ingredient: "Uvas", name: "Uva bianca senza semi 1 kg", packSize: 1000, packUnit: "g",
-    price: { cents: 279, validUntil: "2026-10-25", observedAt: "2026-10-20", sourceKind: "flyer", sourceRef: "Volantino Iper La grande i 12-25 ott 2026 (anteprimavolantino.it; otra fuente indica 2,59)", isEstimate: false },
+    price: { cents: 259, validUntil: "2026-10-25", observedAt: "2026-10-20", sourceKind: "flyer", sourceRef: "Volantino Iper La grande i 12-25 ott 2026 p.7 (PDF oficial)", isEstimate: false },
   },
   // Estimaciones: se muestran marcadas como tales y se pueden confirmar desde la app.
   { store: "esselunga", ingredient: "Pasta seca", name: "Pasta 500 g", packSize: 500, packUnit: "g", price: { cents: 85, observedAt: "2026-10-20", sourceKind: "manual", sourceRef: EST, isEstimate: true } },

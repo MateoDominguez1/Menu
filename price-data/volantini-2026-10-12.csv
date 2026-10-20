@@ -1,0 +1,29 @@
+tienda,ingrediente,producto,marca,tamano,unidad,precio,promo,vigente_hasta,fecha,fuente,al_peso
+iper,Pechuga de pollo,Petto di pollo (al taglio),,1000,g,12.90,9.99,2026-10-25,2026-10-20,"Volantino Iper La grande i 12-25 ott 2026 p.4 - sconto 22%",si
+iper,Huevos,10 uova da allevamento a terra,AIA,10,unit,3.49,,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.4 - Iper Prezzo",no
+iper,Huevos,6 uova fresche Romagna,Le Naturelle,6,unit,2.29,,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.4 - Iper Prezzo",no
+iper,Jamon cocido,Prosciutto cotto di Alta Qualita Praga (al taglio),Parmacotto,1000,g,21.90,15.90,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.6 - sconto 27%",si
+iper,Mozzarella,Mozzarella 125 g x3,Iper,375,g,3.19,2.29,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.9 - sconto 28% con Carta Vantaggi",no
+iper,Mozzarella,Mozzarella 100 g x4,Granarolo,400,g,4.99,2.59,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.9 - sconto 48% con Carta Vantaggi",no
+iper,Yogur natural,Yogurt bianco intero o zero grassi 125 g x8,Muller,1000,g,1.99,,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.11 - Iper Prezzo",no
+iper,Leche,Latte UHT parzialmente scremato 1 l,Parmalat,1000,ml,1.59,0.99,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.12 - sconto 37% con Carta Vantaggi",no
+iper,Leche,Latte UHT parzialmente scremato 1 l,Iper,1000,ml,1.45,1.08,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.12 - sconto 25% con Carta Vantaggi",no
+iper,Champinones,Funghi champignon 1 kg,,1000,g,2.49,,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.7 - Iper Prezzo",no
+iper,Patata,"Patate a pasta gialla 2,5 kg",,2500,g,2.45,,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.7 - Iper Prezzo (0,98 EUR/kg)",no
+iper,Tomate,Pomodori Ciliegino o Piccadilly 500 g,,500,g,1.89,,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.7 - Iper Prezzo (3,78 EUR/kg)",no
+iper,Uvas,Uva bianca senza semi 1 kg,,1000,g,2.59,,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.7 - Iper Prezzo",no
+iper,Arroz,Riso per risotto 1 kg,Curtiriso,1000,g,3.99,1.89,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.18 - sconto 52% con Carta Vantaggi",no
+iper,Pasta seca,Pasta di semola 500 g formati assortiti,Barilla,500,g,0.99,0.59,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.18 - sconto 40% con Carta Vantaggi",no
+iper,Pasta seca,Pasta di semola 1 kg,De Cecco,1000,g,3.30,1.49,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.18 - sconto 55% con Carta Vantaggi",no
+iper,Pan de molde,Pan Bauletto al grano duro 400 g,Mulino Bianco,400,g,1.15,0.89,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.19 - sconto 22% con Carta Vantaggi",no
+iper,Atun al aceite,Tonno in olio di oliva 70 g x6,Mareblu,420,g,8.99,4.59,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.20 - sconto 48% con Carta Vantaggi",no
+iper,Atun al aceite,Tonno in olio di oliva 70 g x8,Mare Aperto,560,g,10.99,5.99,2026-10-25,2026-10-20,"Volantino Iper 12-25 ott p.20 - sconto 45% con Carta Vantaggi",no
+esselunga,Patata,"Patate di Bologna DOP 1,5 kg",Esselunga,1500,g,2.99,1.79,2026-10-21,2026-10-20,"Volantino Esselunga 8-21 ott 2026 p.16 - 1,19 EUR/kg; precio de la bolsa calculado (1,5 kg)",no
+esselunga,Uvas,Uva mista senza semi 500 g,,500,g,2.40,1.68,2026-10-21,2026-10-20,"Volantino Esselunga 8-21 ott p.16 - sconto 30%",no
+esselunga,Pasta seca,Pasta di semola 500 g,Voiello,500,g,1.49,0.74,2026-10-21,2026-10-20,"Volantino Esselunga 8-21 ott p.5 - sconto Fidaty 50% (requiere tarjeta Fidaty)",no
+esselunga,Arroz,Riso Scotti Chicchi Grossi Gran Selezione 1 kg,Scotti,1000,g,3.99,,2026-10-21,2026-10-20,"Volantino Esselunga 8-21 ott p.5 - 1+1 gratis: 2 pezzi 3,99 EUR",no
+esselunga,Atun al aceite,Tonno all'olio di oliva 6x65 g,Rizzoli,390,g,9.98,4.99,2026-10-21,2026-10-20,"Volantino Esselunga 8-21 ott p.5 - sconto Fidaty 50%",no
+esselunga,Mozzarella,Mozzarella Alta Qualita 4x100 g,Granarolo,400,g,4.78,2.39,2026-10-21,2026-10-20,"Volantino Esselunga 8-21 ott p.2 - sconto Fidaty 50%",no
+esselunga,Leche,Latte Piacere Leggero parzialmente scremato UHT 1 l,Granarolo,1000,ml,1.09,,2026-10-21,2026-10-20,"Volantino Esselunga 8-21 ott p.2 - Prezzi Corti",no
+esselunga,Jamon cocido,Prosciutto cotto a fette 2x100 g,Ferrarini,200,g,7.98,3.99,2026-10-21,2026-10-20,"Volantino Esselunga 8-21 ott p.3 - sconto Fidaty 50%",no
+esselunga,Jamon cocido,Prosciutto cotto Alta Qualita Granbiscotto (al taglio),Granbiscotto,1000,g,19.90,,2026-10-21,2026-10-20,"Volantino Esselunga 8-21 ott p.19 - Prezzi Corti",si
