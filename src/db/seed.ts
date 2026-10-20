@@ -1,4 +1,5 @@
 import { databaseToken, databaseUrl } from "@/server/config";
+import { extraIngredients } from "./extra-ingredients";
 import { createDb, type Db } from "./client";
 import { runMigrations } from "./migrate";
 import * as s from "./schema";
@@ -122,6 +123,25 @@ const KNOWN_FIXES = [
 ];
 
 export async function applyReferenceData(db: Db): Promise<{ added: number }> {
+  // Ingredientes nuevos para bases que ya existian (idempotente por nombre).
+  const haveIng = new Set((await db.select({ name: s.ingredients.name }).from(s.ingredients)).map((i) => i.name));
+  const missing = extraIngredients.filter((i) => !haveIng.has(i.name));
+  if (missing.length > 0) {
+    await db.insert(s.ingredients).values(
+      missing.map((i) => ({
+        name: i.name,
+        category: i.category,
+        baseUnit: i.baseUnit,
+        gramsPerUnit: i.gramsPerUnit ?? null,
+        kcal100: i.n?.[0] ?? null,
+        protein100: i.n?.[1] ?? null,
+        carbs100: i.n?.[2] ?? null,
+        fat100: i.n?.[3] ?? null,
+        nutritionSource: i.n ? NUTRITION_SOURCE : null,
+        nutritionIsEstimate: true,
+      })),
+    );
+  }
   const stores = await db.select().from(s.stores);
   const iper = stores.find((x) => x.slug === "iper");
   if (iper && iper.name !== IPER_STORE.name) {

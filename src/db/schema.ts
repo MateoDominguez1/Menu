@@ -103,6 +103,8 @@ export const recipes = sqliteTable("recipes", {
   instructions: text("instructions").notNull().default(""),
   imageUrl: text("image_url"),
   tags: text("tags").notNull().default(""),
+  /** "manual": cargada por el usuario o semilla. "generated": compuesta por la app a partir de las ofertas. */
+  source: text("source", { enum: ["manual", "generated"] }).notNull().default("manual"),
   createdAt: createdAt(),
 });
 

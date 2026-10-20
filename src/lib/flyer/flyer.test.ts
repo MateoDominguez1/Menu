@@ -204,7 +204,18 @@ describe("mapeo a ingredientes", () => {
     expect(mapOfferToIngredient({ name: "Pasta fresca ripiena 250 g" })).toBeNull();
     expect(mapOfferToIngredient({ name: "Pasta di semola formati assortiti 500 g" })).toBe("Pasta seca");
     expect(mapOfferToIngredient({ name: "Mozzarella di latte di Bufala 100 g x3" })).toBeNull();
-    expect(mapOfferToIngredient({ name: "Gnocchi di patate" })).toBeNull();
+    expect(mapOfferToIngredient({ name: "Gnocchi di patate" })).toBe("Gnocchi");
+    expect(mapOfferToIngredient({ name: "Gnocchi ripieni di speck" })).toBeNull();
+    expect(mapOfferToIngredient({ name: "Caffè macinato Vivace" })).toBeNull();
+    expect(mapOfferToIngredient({ name: "Pizzone Power con salsiccia e fagioli surgelata" })).toBeNull();
+    expect(mapOfferToIngredient({ name: "Polpettone di salmone con peperoni e scamorza" })).toBeNull();
+    expect(mapOfferToIngredient({ name: "Sovracosce di pollo maxi" })).toBe("Pollo muslo");
+    expect(mapOfferToIngredient({ name: "Orata già pulita" })).toBe("Dorada");
+    expect(mapOfferToIngredient({ name: "Salsiccia di suino" })).toBe("Salchicha fresca");
+    expect(mapOfferToIngredient({ name: "Salmone Norvegese 100 g" })).toBe("Salmon");
+    expect(mapOfferToIngredient({ name: "Sushi salmone nighiri" })).toBeNull();
+    expect(mapOfferToIngredient({ name: "Fettine sottili di bovino adulto" })).toBe("Ternera");
+    expect(mapOfferToIngredient({ name: "Lonza di suino a fette" })).toBe("Cerdo magro");
   });
 
   it("solo crea producto si la unidad es compatible con el ingrediente", () => {

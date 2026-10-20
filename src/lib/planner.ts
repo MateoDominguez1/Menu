@@ -22,7 +22,23 @@ export type PlannerInput = {
   maxRepeats: number;
   seed: number;
   servings: number;
+  /** Puntaje por receta segun lo que esta en oferta (ver recipeDealScore). */
+  dealScores?: Map<number, number>;
+  /** Receta -> dias desde la ultima vez que se comio (para no repetir). */
+  recentRecipes?: Map<number, number>;
+  /** Ingrediente -> veces que se uso en los ultimos dias (para variar proteinas). */
+  recentIngredients?: Map<number, number>;
 };
+
+/** Suma por cada ingrediente de la receta que esta en oferta: mas descuento, mas puntaje. */
+export function recipeDealScore(recipe: RecipeLite, deals: Map<number, number>): number {
+  let s = 0;
+  for (const ri of recipe.ingredients) {
+    const d = deals.get(ri.ingredientId);
+    if (d !== undefined) s += 10 + Math.min(d, 60);
+  }
+  return s;
+}
 
 export type PlannedSlot = SlotToFill & { recipeId: number | null; servings: number };
 
@@ -128,6 +144,16 @@ function pickRecipe(
     score -= times * 40;
     if (prev && prev.recipeId === r.id) score -= 30;
     if (input.favoriteIds.has(r.id)) score += 15;
+    score += Math.min(input.dealScores?.get(r.id) ?? 0, 90) * 0.5;
+    const ago = input.recentRecipes?.get(r.id);
+    if (ago !== undefined) score -= ago <= 7 ? 60 : ago <= 21 ? 35 : 15;
+    let repeated = 0;
+    for (const ri of r.ingredients) {
+      if (input.ingredients.get(ri.ingredientId)?.category === "carne_pescado") {
+        repeated += input.recentIngredients?.get(ri.ingredientId) ?? 0;
+      }
+    }
+    score -= Math.min(repeated * 3, 18);
     for (const ri of r.ingredients) {
       if (usedIngredients.has(ri.ingredientId)) score += 5;
       if (pantryIds.has(ri.ingredientId)) score += 6;

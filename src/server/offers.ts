@@ -1,4 +1,4 @@
-import { and, eq, gte, like } from "drizzle-orm";
+import { and, eq, gte, isNull, like } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import * as s from "@/db/schema";
 import { mapOfferToIngredient, toProductDraft } from "@/lib/flyer/mapping";
@@ -149,6 +149,69 @@ export async function importOffers(input: ImportInput): Promise<ImportResult> {
 
   await db.update(s.offerImports).set({ offerCount: imported }).where(eq(s.offerImports.id, batch.id));
   return { importId: batch.id, imported, duplicates, linkedToIngredients: linked, productsCreated };
+}
+
+/**
+ * Liga a ingredientes las ofertas que todavia no lo estan (p. ej. al ampliar las reglas de mapeo)
+ * y crea los productos y precios correspondientes. Idempotente.
+ */
+export async function relinkOffers(): Promise<{ linked: number }> {
+  const db = getDb();
+  const [pending, ingredients, imports] = await Promise.all([
+    db.select().from(s.offers).where(isNull(s.offers.ingredientId)),
+    db.select().from(s.ingredients),
+    db.select().from(s.offerImports),
+  ]);
+  const ingByName = new Map(ingredients.map((i) => [i.name, i]));
+  const labelOf = new Map(imports.map((i) => [i.id, i.label]));
+  let linked = 0;
+  for (const o of pending) {
+    const ingName = mapOfferToIngredient(o);
+    const ing = ingName ? ingByName.get(ingName) : undefined;
+    const draft = ing
+      ? toProductDraft({ perKg: o.perKg, packSize: o.packSize, packUnit: o.packUnit }, ing.baseUnit)
+      : null;
+    if (!ing || !draft) continue;
+    const name = o.brand ? `${o.name} (${o.brand})` : o.name;
+    const found = (
+      await db
+        .select()
+        .from(s.products)
+        .where(and(eq(s.products.storeId, o.storeId), eq(s.products.ingredientId, ing.id), eq(s.products.name, name)))
+    )[0];
+    const productId =
+      found?.id ??
+      (
+        await db
+          .insert(s.products)
+          .values({
+            storeId: o.storeId,
+            ingredientId: ing.id,
+            name,
+            brand: o.brand,
+            packSize: draft.packSize,
+            packUnit: draft.packUnit,
+            soldByWeight: draft.soldByWeight,
+          })
+          .returning()
+      )[0].id;
+    const hasRegular = o.regularCents !== null && o.regularCents > o.priceCents;
+    await db.insert(s.priceRecords).values({
+      productId,
+      priceCents: hasRegular ? (o.regularCents as number) : o.priceCents,
+      promoPriceCents: hasRegular ? o.priceCents : null,
+      promoConditions: o.condition,
+      validUntil: o.validUntil,
+      sourceKind: "flyer",
+      sourceRef: `${labelOf.get(o.importId) ?? "Volantino"} p.${o.page ?? "?"}${o.needsCard ? " (requiere tarjeta)" : ""} [import #${o.importId}]`,
+      observedAt: o.validFrom ?? o.createdAt.slice(0, 10),
+      confirmedByUser: false,
+      isEstimate: false,
+    });
+    await db.update(s.offers).set({ ingredientId: ing.id }).where(eq(s.offers.id, o.id));
+    linked += 1;
+  }
+  return { linked };
 }
 
 /** Borra una importacion y los precios que genero (los productos creados quedan, sin precio vigente). */

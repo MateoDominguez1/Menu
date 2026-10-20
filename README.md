@@ -4,6 +4,8 @@ Aplicacion web personal para planificar comidas, controlar el presupuesto y hace
 
 ## Que hace
 
+- **Ofertas de volantinos**: en "Ofertas" importas el PDF de Iper La grande i o de Esselunga (se lee en tu navegador, no se sube) y exploras todos los productos en oferta; cualquiera se puede agregar a la lista. Las ofertas que corresponden a un ingrediente alimentan los precios de la lista y el comparador.
+- **Plan variable segun ofertas**: antes de generar un plan, la app compone recetas nuevas combinando proteina + guarnicion + verdura con distintas formas de cocinar (plancha, horno, salteado, pasta, arroz, tortilla, ensalada, legumbres, sandwich, crema), usando solo proteinas que esten en oferta (mas basicos como pasta, arroz, papas y huevos). Premia lo que esta en descuento y penaliza lo que ya comiste en las ultimas semanas. Las recetas fijas siguen disponibles como una opcion mas.
 - **Plan de comidas** por periodo (de 1 a 14 dias, empezando cualquier dia): eliges donde comes cada dia (casa, trabajo, fuera) y genera recetas para las comidas que faltan, respetando presupuesto, tiempo de cocina, alimentos a evitar, favoritas/descartadas y lo que ya tenes en casa. Cambiar o editar una comida no regenera el resto.
 - **Recetas** con ingredientes estructurados (unidades normalizadas a g, ml o unidades), porciones escalables, costo por porcion, nutricion estimada, editor, duplicado y borrado.
 - **Lista de compras** calculada desde el plan, descontando la despensa, agrupada por categorias, con progreso, subtotal, modo compra de una mano, productos manuales, cantidades y precios editables, y precios estimados claramente separados de los confirmados. Se guarda sola; si falla la conexion, las marcas quedan en el telefono y se sincronizan al volver.

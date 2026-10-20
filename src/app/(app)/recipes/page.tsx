@@ -36,6 +36,7 @@ export default async function RecipesPage() {
                   </p>
                 </div>
                 <div className="flex gap-1">
+                  {c.auto && <Badge tone="info">Segun ofertas</Badge>}
                   {c.pref === "favorite" && <Badge tone="good">Favorita</Badge>}
                   {c.pref === "discarded" && <Badge tone="bad">Descartada</Badge>}
                 </div>

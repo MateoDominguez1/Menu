@@ -367,6 +367,72 @@ describe("plan y lista de compras sobre base real", () => {
     ).rejects.toThrow();
   });
 
+  it("el plan se compone con lo que esta en oferta y cambia de una semana a otra", async () => {
+    const { importOffers, relinkOffers } = await import("./offers");
+    const o = (name: string, priceCents: number, extra: Partial<import("@/lib/flyer/types").ParsedOffer> = {}) => ({
+      store: "iper" as const,
+      page: 4,
+      name,
+      brand: null,
+      priceCents,
+      regularCents: null,
+      discountPct: null,
+      unitPriceCents: null,
+      unitPriceLabel: null,
+      perKg: true,
+      needsCard: false,
+      condition: null,
+      packSize: null,
+      packUnit: null,
+      category: "carne" as const,
+      ...extra,
+    });
+    const res = await importOffers({
+      storeSlug: "iper",
+      label: "Volantino de prueba",
+      validFrom: "2026-01-01",
+      validUntil: "2099-12-31",
+      offers: [
+        o("Sovracosce di pollo maxi", 489, { regularCents: 689, discountPct: 29 }),
+        o("Orata già pulita", 980),
+        o("Salsiccia di suino", 759),
+        o("Finocchi", 138, { category: "fruta_verdura" }),
+        o("Cavolfiore", 149, { category: "fruta_verdura" }),
+        o("Lenticchie lessate 400 g", 129, { perKg: false, packSize: 400, packUnit: "g", category: "conservas_despensa" }),
+        o("Latte UHT 1 l", 99, { perKg: false, packSize: 1000, packUnit: "ml", category: "lacteos_huevos" }),
+      ],
+    });
+    expect(res.imported).toBe(7);
+    expect(res.linkedToIngredients).toBeGreaterThanOrEqual(6);
+    expect((await relinkOffers()).linked).toBe(0); // idempotente
+
+    const first = await m.plans.generateWeekPlan({ weekStart: "2031-01-06", days: 7, budgetCents: 4300, skips: [], seed: 11 });
+    const entries = await m.db.select().from(m.s.mealPlanEntries).where(m.eq(m.s.mealPlanEntries.planId, first.planId));
+    const recipeRows = await m.db.select().from(m.s.recipes);
+    const byId = new Map(recipeRows.map((r) => [r.id, r]));
+    const generated = entries.filter((e) => e.recipeId && byId.get(e.recipeId)?.source === "generated");
+    expect(generated.length).toBeGreaterThan(3);
+
+    // Lo generado usa ingredientes en oferta y su costo sale del precio del volantino.
+    const ings = await m.db.select().from(m.s.ingredients);
+    const nameOf = new Map(ings.map((i) => [i.id, i.name]));
+    const used = new Set<string>();
+    for (const e of generated) {
+      const ri = await m.db.select().from(m.s.recipeIngredients).where(m.eq(m.s.recipeIngredients.recipeId, e.recipeId!));
+      ri.forEach((x) => used.add(nameOf.get(x.ingredientId)!));
+    }
+    expect(["Pollo muslo", "Dorada", "Salchicha fresca", "Hinojo", "Coliflor", "Lentejas"].some((n) => used.has(n))).toBe(true);
+    const list = await items(first.listId);
+    expect(list.some((x) => x.estPriceCents !== null && x.priceStatus === "estimated")).toBe(true);
+
+    // La semana siguiente no repite las mismas comidas.
+    const second = await m.plans.generateWeekPlan({ weekStart: "2031-01-13", days: 7, budgetCents: 4300, skips: [], seed: 12 });
+    const next = await m.db.select().from(m.s.mealPlanEntries).where(m.eq(m.s.mealPlanEntries.planId, second.planId));
+    const a = new Set(entries.map((e) => e.recipeId));
+    const repeated = next.filter((e) => e.recipeId && a.has(e.recipeId)).length;
+    expect(repeated).toBeLessThan(next.length / 2);
+  });
+
   it("la importacion CSV agrega productos y precios y reporta filas con error", async () => {
     const csv = [
       "tienda,ingrediente,producto,marca,tamano,unidad,precio,promo,vigente_hasta,fecha,fuente,al_peso",

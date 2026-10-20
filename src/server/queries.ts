@@ -22,6 +22,8 @@ export type RecipeCard = {
   costUnknown: number;
   nutrition: Nutrition;
   pref: "favorite" | "discarded" | null;
+  /** Compuesta automaticamente segun las ofertas vigentes. */
+  auto: boolean;
 };
 
 export function recipeCard(data: CatalogData, recipeId: number, today: string): RecipeCard | null {
@@ -37,6 +39,7 @@ export function recipeCard(data: CatalogData, recipeId: number, today: string): 
     costUnknown: cost.unknown,
     nutrition: recipeNutritionPerServing(r, data.ingredients),
     pref: data.favoriteIds.has(r.id) ? "favorite" : data.discardedIds.has(r.id) ? "discarded" : null,
+    auto: r.tags.split(",").includes("auto"),
   };
 }
 

@@ -5,12 +5,14 @@ import { addDays, todayISO } from "@/lib/dates";
 import {
   estimatePlanCost,
   generatePlan,
+  recipeDealScore,
   suggestAlternatives,
   usableRecipes,
   type PlannerInput,
 } from "@/lib/planner";
 import { aiEnabled, aiPickRecipes } from "./ai";
 import { buildUnitCost, loadCatalog, type CatalogData } from "./catalog";
+import { currentDeals, recentHistory, refreshGeneratedRecipes } from "./generated";
 import { recipeCard } from "./queries";
 import { syncShoppingList } from "./sync";
 
@@ -31,6 +33,7 @@ function plannerInput(
   budgetCents: number,
   seed: number,
   locked: PlannerInput["locked"] = new Map(),
+  extras: Partial<PlannerInput> = {},
 ): PlannerInput {
   return {
     slots,
@@ -47,7 +50,20 @@ function plannerInput(
     maxRepeats: 2,
     seed,
     servings: 1,
+    ...extras,
   };
+}
+
+/** Ofertas vigentes e historial reciente: lo que vuelve variable y economico al plan. */
+async function plannerExtras(data: CatalogData, excludePlanId: number | null): Promise<Partial<PlannerInput>> {
+  const today = todayISO();
+  const [deals, history] = await Promise.all([currentDeals(today), recentHistory(excludePlanId, today)]);
+  const dealScores = new Map<number, number>();
+  for (const r of data.recipes.values()) {
+    const sc = recipeDealScore(r, deals.byIngredient);
+    if (sc > 0) dealScores.set(r.id, sc);
+  }
+  return { dealScores, recentRecipes: history.recipes, recentIngredients: history.ingredients };
 }
 
 export type GenerateOptions = {
@@ -60,7 +76,17 @@ export type GenerateOptions = {
 
 export async function generateWeekPlan(opts: GenerateOptions) {
   const db = getDb();
+  // Primero se componen recetas nuevas segun las ofertas vigentes, para que el plan no dependa solo de las fijas.
+  await refreshGeneratedRecipes(opts.seed);
   const data = await loadCatalog();
+  const priorPlan = (
+    await db
+      .select()
+      .from(s.mealPlans)
+      .where(and(eq(s.mealPlans.weekStart, opts.weekStart), eq(s.mealPlans.days, opts.days)))
+      .limit(1)
+  )[0];
+  const extras = await plannerExtras(data, priorPlan?.id ?? null);
   const slotTypes = enabledSlots(data.profile);
   const dates = Array.from({ length: opts.days }, (_, i) => addDays(opts.weekStart, i));
   const skipMap = new Map(opts.skips.map((k) => [`${k.date}|${k.slot}`, k.reason]));
@@ -68,7 +94,7 @@ export async function generateWeekPlan(opts: GenerateOptions) {
   const toFill = dates.flatMap((date) =>
     slotTypes.filter((slot) => !skipMap.has(`${date}|${slot}`)).map((slot) => ({ date, slot })),
   );
-  const input = plannerInput(data, toFill, opts.budgetCents, opts.seed);
+  const input = plannerInput(data, toFill, opts.budgetCents, opts.seed, new Map(), extras);
   const result = generatePlan(input);
   let generator: "local" | "ai" = "local";
   const warnings = [...result.warnings];
@@ -193,6 +219,8 @@ export async function alternativesFor(entryId: number) {
     [{ date: entry.date, slot: entry.slot }],
     plan.budgetCents,
     Date.now() % 100000,
+    new Map(),
+    await plannerExtras(data, entry.planId),
   );
   return suggestAlternatives(input, { date: entry.date, slot: entry.slot }, entry.recipeId, others, 6).map(
     (r) => ({ id: r.id, name: r.name, minutes: r.minutes }),

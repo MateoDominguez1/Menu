@@ -73,6 +73,7 @@ export function EntryCard({
               <Badge>
                 {Math.round(r.nutrition.kcal)} kcal{!r.nutrition.complete ? "*" : ""} · {Math.round(r.nutrition.protein)} g prot (est.)
               </Badge>
+              {r.auto && <Badge tone="info">Segun ofertas</Badge>}
               {r.pref === "favorite" && <Badge tone="good">Favorita</Badge>}
               {entry.servings !== 1 && <Badge tone="info">{entry.servings} porciones</Badge>}
               {eaten && <Badge tone="good">Comida</Badge>}
