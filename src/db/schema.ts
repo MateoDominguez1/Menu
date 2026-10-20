@@ -178,6 +178,71 @@ export const priceRecords = sqliteTable(
   (t) => [index("price_records_product_idx").on(t.productId)],
 );
 
+export const OFFER_CATEGORIES = [
+  "carne",
+  "pescado",
+  "fiambres_quesos",
+  "lacteos_huevos",
+  "fruta_verdura",
+  "pan_panaderia",
+  "pasta_arroz",
+  "conservas_despensa",
+  "congelados",
+  "bebidas",
+  "snacks_dulces",
+  "otros_alimentos",
+] as const;
+
+/** Cada importacion de un volantino: sirve para auditar de donde vienen las ofertas. */
+export const offerImports = sqliteTable("offer_imports", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  storeId: integer("store_id")
+    .notNull()
+    .references(() => stores.id),
+  label: text("label").notNull(),
+  validFrom: text("valid_from"),
+  validUntil: text("valid_until").notNull(),
+  offerCount: integer("offer_count").notNull().default(0),
+  importedAt: createdAt(),
+});
+
+/** Cualquier producto en oferta de un volantino, este o no ligado a un ingrediente de las recetas. */
+export const offers = sqliteTable(
+  "offers",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    importId: integer("import_id")
+      .notNull()
+      .references(() => offerImports.id, { onDelete: "cascade" }),
+    storeId: integer("store_id")
+      .notNull()
+      .references(() => stores.id),
+    name: text("name").notNull(),
+    brand: text("brand"),
+    category: text("category", { enum: OFFER_CATEGORIES }).notNull().default("otros_alimentos"),
+    priceCents: integer("price_cents").notNull(),
+    regularCents: integer("regular_cents"),
+    discountPct: integer("discount_pct"),
+    unitPriceCents: integer("unit_price_cents"),
+    unitPriceLabel: text("unit_price_label", { enum: ["kg", "L"] }),
+    perKg: integer("per_kg", { mode: "boolean" }).notNull().default(false),
+    needsCard: integer("needs_card", { mode: "boolean" }).notNull().default(false),
+    condition: text("condition"),
+    packSize: real("pack_size"),
+    packUnit: text("pack_unit", { enum: BASE_UNITS }),
+    ingredientId: integer("ingredient_id").references(() => ingredients.id, { onDelete: "set null" }),
+    validFrom: text("valid_from"),
+    validUntil: text("valid_until").notNull(),
+    page: integer("page"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("offers_store_idx").on(t.storeId),
+    index("offers_valid_idx").on(t.validUntil),
+    index("offers_ingredient_idx").on(t.ingredientId),
+  ],
+);
+
 export const mealPlans = sqliteTable("meal_plans", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   weekStart: text("week_start").notNull(),
@@ -234,6 +299,7 @@ export const shoppingItems = sqliteTable(
       .notNull()
       .references(() => shoppingLists.id, { onDelete: "cascade" }),
     ingredientId: integer("ingredient_id").references(() => ingredients.id),
+    offerId: integer("offer_id").references(() => offers.id, { onDelete: "set null" }),
     name: text("name").notNull(),
     category: text("category", { enum: CATEGORIES }).notNull().default("otros"),
     unit: text("unit", { enum: BASE_UNITS }).notNull(),
@@ -275,6 +341,7 @@ export const pantryItems = sqliteTable("pantry_items", {
   expiresOn: text("expires_on"),
 });
 
+export type Offer = typeof offers.$inferSelect;
 export type Profile = typeof profile.$inferSelect;
 export type Ingredient = typeof ingredients.$inferSelect;
 export type Recipe = typeof recipes.$inferSelect;

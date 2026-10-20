@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
 
 const links = [
+  { href: "/compare", title: "Comparar tiendas", desc: "Esselunga vs Iper para tu lista actual" },
   { href: "/recipes", title: "Recetas", desc: "Ver, crear y editar recetas" },
   { href: "/pantry", title: "Despensa", desc: "Lo que tenes en casa" },
   { href: "/history", title: "Historial", desc: "Semanas anteriores y gasto real" },

@@ -7,6 +7,7 @@ const items = [
   { href: "/", label: "Inicio", icon: "M3 11l9-8 9 8v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z" },
   { href: "/plan", label: "Plan", icon: "M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1zm0 5h16M9 4v16" },
   { href: "/shopping", label: "Compras", icon: "M6 6h15l-2 9H8zM6 6L5 3H2m6 17a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z" },
+  { href: "/offers", label: "Ofertas", icon: "M20 12l-8 8-9-9V4h7zM7.5 7.5h.01" },
   { href: "/compare", label: "Comparar", icon: "M4 20V10m6 10V4m6 16v-7m6 7H2" },
   { href: "/recipes", label: "Recetas", icon: "M6 3h12a1 1 0 011 1v16l-7-3-7 3V4a1 1 0 011-1z" },
   { href: "/pantry", label: "Despensa", icon: "M4 8l8-5 8 5v12H4zM9 20v-6h6v6" },
@@ -24,7 +25,7 @@ function Icon({ d }: { d: string }) {
 
 export function Nav() {
   const pathname = usePathname();
-  const moreRoutes = ["/pantry", "/history", "/settings", "/more", "/recipes"];
+  const moreRoutes = ["/pantry", "/history", "/settings", "/more", "/recipes", "/compare"];
   const active = (href: string) =>
     href === "/"
       ? pathname === "/"
@@ -32,7 +33,7 @@ export function Nav() {
         ? moreRoutes.some((r) => pathname.startsWith(r))
         : pathname.startsWith(href);
   const mobileItems = [
-    ...items.filter((i) => ["/", "/plan", "/shopping", "/compare"].includes(i.href)),
+    ...items.filter((i) => ["/", "/plan", "/shopping", "/offers"].includes(i.href)),
     { href: "/more", label: "Mas", icon: "M5 12h.01M12 12h.01M19 12h.01" },
   ];
 

@@ -265,6 +265,15 @@ export async function updateItemAction(input: z.input<typeof updateItemSchema>) 
   if (v.toBuyQty !== undefined) {
     patch.toBuyQty = v.toBuyQty;
     patch.qtyOverridden = true;
+    // Items que vienen de una oferta: el precio acompana la cantidad (envases o gramos).
+    if (item.offerId && v.estPriceCents === undefined) {
+      const [offer] = await db.select().from(s.offers).where(eq(s.offers.id, item.offerId));
+      if (offer) {
+        patch.estPriceCents = offer.perKg
+          ? Math.round((offer.priceCents * v.toBuyQty) / 1000)
+          : offer.priceCents * v.toBuyQty;
+      }
+    }
   }
   if (v.estPriceCents !== undefined) {
     patch.estPriceCents = v.estPriceCents;

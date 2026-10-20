@@ -17,6 +17,7 @@
     "@libsql/client": "^0.18.0",
     "drizzle-orm": "^0.45.4",
     "next": "16.4.2",
+    "pdfjs-dist": "^6.4.299",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "zod": "^4.6.7"
