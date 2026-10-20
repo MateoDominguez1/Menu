@@ -107,7 +107,8 @@ export async function importOffers(input: ImportInput): Promise<ImportResult> {
 
     if (draft && ing) {
       linked += 1;
-      const name = o.brand ? `${o.name} (${o.brand})` : o.name;
+      // El nombre queda como en el volantino y la marca aparte; al mostrar se antepone la marca.
+      const name = o.name;
       const found = (
         await db
           .select()
@@ -172,7 +173,7 @@ export async function relinkOffers(): Promise<{ linked: number }> {
       ? toProductDraft({ perKg: o.perKg, packSize: o.packSize, packUnit: o.packUnit }, ing.baseUnit)
       : null;
     if (!ing || !draft) continue;
-    const name = o.brand ? `${o.name} (${o.brand})` : o.name;
+    const name = o.name;
     const found = (
       await db
         .select()

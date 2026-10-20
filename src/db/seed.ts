@@ -122,6 +122,11 @@ const KNOWN_FIXES = [
   { product: "Uva bianca senza semi 1 kg", from: 279, to: 259, ref: "Volantino Iper La grande i 12-25 ott 2026 p.7 (PDF oficial)" },
 ];
 
+const PRODUCT_RENAMES = [
+  { from: "Arroz 1 kg", to: "Riso 1 kg" },
+  { from: "Avocado (1 unidad)", to: "Avocado (1 pezzo)" },
+];
+
 export async function applyReferenceData(db: Db): Promise<{ added: number }> {
   // Ingredientes nuevos para bases que ya existian (idempotente por nombre).
   const haveIng = new Set((await db.select({ name: s.ingredients.name }).from(s.ingredients)).map((i) => i.name));
@@ -169,6 +174,10 @@ export async function applyReferenceData(db: Db): Promise<{ added: number }> {
           );
       }
     }
+  }
+  // Nombres de productos como en la gondola (bases creadas antes con nombres en espanol).
+  for (const r of PRODUCT_RENAMES) {
+    await db.update(s.products).set({ name: r.to }).where(eq(s.products.name, r.from));
   }
   let added = 0;
   for (const p of seedProducts) {

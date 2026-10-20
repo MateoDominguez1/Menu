@@ -10,6 +10,7 @@ import {
   btnSecondary,
   input,
 } from "@/components/ui";
+import { italianName } from "@/lib/italian";
 import { productLabel } from "@/lib/labels";
 import { formatEUR, parseEuros } from "@/lib/money";
 import { formatQuantity } from "@/lib/units";
@@ -369,6 +370,12 @@ export function ShoppingList(props: Props) {
   );
 }
 
+/** Como se lee en el volantino o en la gondola: nombre italiano del producto, con la marca. */
+function shelfName(it: ItemView): string {
+  if (it.product) return productLabel(it.product.brand, it.product.name);
+  return it.ingredientId !== null ? italianName(it.name) : it.name;
+}
+
 function Row({
   it,
   big,
@@ -412,15 +419,15 @@ function Row({
         </button>
         <button onClick={onOpen} className="min-w-0 flex-1 text-left" aria-expanded={open}>
           <p className={`${big ? "text-lg" : "text-base"} font-medium leading-snug ${it.checked ? "line-through" : ""}`}>
-            {it.name}
+            {shelfName(it)}
           </p>
           <p className="text-sm text-stone-500">
             {quantityLabel(it)}
             {!big && it.pantryQty > 0 && ` · tenes ${formatQuantity(it.pantryQty, it.unit)}`}
           </p>
-          {!big && it.product && (
+          {!big && (
             <p className="truncate text-xs text-stone-400">
-              {it.product.storeName} · {productLabel(it.product.brand, it.product.name)}
+              {[it.product?.storeName, shelfName(it) !== it.name ? it.name : null].filter(Boolean).join(" · ")}
             </p>
           )}
         </button>
