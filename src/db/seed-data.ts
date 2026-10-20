@@ -281,6 +281,19 @@ export const products: SeedProduct[] = [
     store: "esselunga", ingredient: "Jamon cocido", name: "Smart prosciutto cotto alta qualita 130 g", brand: "Smart", packSize: 130, packUnit: "g",
     price: { cents: 168, observedAt: "2026-10-20", sourceKind: "web", sourceRef: "miaspesa.it (tercero, sin confirmar)", isEstimate: false },
   },
+  // Iper La grande i: promos del volantino 12-25 oct 2026. Los volantinos varian por local y solo traen ofertas.
+  {
+    store: "iper", ingredient: "Patata", name: "Patate a pasta gialla 2,5 kg", packSize: 2500, packUnit: "g",
+    price: { cents: 100, validUntil: "2026-10-25", observedAt: "2026-10-20", sourceKind: "flyer", sourceRef: "Volantino Iper La grande i 12-25 ott 2026 (anteprimavolantino.it); varia por local", isEstimate: false },
+  },
+  {
+    store: "iper", ingredient: "Champinones", name: "Funghi champignon 1 kg", packSize: 1000, packUnit: "g",
+    price: { cents: 249, validUntil: "2026-10-25", observedAt: "2026-10-20", sourceKind: "flyer", sourceRef: "Volantino Iper La grande i 12-25 ott 2026 (resumen en sitio de terceros, sin confirmar)", isEstimate: false },
+  },
+  {
+    store: "iper", ingredient: "Uvas", name: "Uva bianca senza semi 1 kg", packSize: 1000, packUnit: "g",
+    price: { cents: 279, validUntil: "2026-10-25", observedAt: "2026-10-20", sourceKind: "flyer", sourceRef: "Volantino Iper La grande i 12-25 ott 2026 (anteprimavolantino.it; otra fuente indica 2,59)", isEstimate: false },
+  },
   // Estimaciones: se muestran marcadas como tales y se pueden confirmar desde la app.
   { store: "esselunga", ingredient: "Pasta seca", name: "Pasta 500 g", packSize: 500, packUnit: "g", price: { cents: 85, observedAt: "2026-10-20", sourceKind: "manual", sourceRef: EST, isEstimate: true } },
   { store: "esselunga", ingredient: "Arroz", name: "Arroz 1 kg", packSize: 1000, packUnit: "g", price: { cents: 150, observedAt: "2026-10-20", sourceKind: "manual", sourceRef: EST, isEstimate: true } },
@@ -295,6 +308,12 @@ export const products: SeedProduct[] = [
   { store: "esselunga", ingredient: "Uvas", name: "Uva Italia 500 g", packSize: 500, packUnit: "g", price: { cents: 170, observedAt: "2026-10-20", sourceKind: "manual", sourceRef: EST, isEstimate: true } },
   { store: "esselunga", ingredient: "Leche", name: "Latte UHT parzialmente scremato 1 L", packSize: 1000, packUnit: "ml", price: { cents: 110, observedAt: "2026-10-20", sourceKind: "manual", sourceRef: EST, isEstimate: true } },
 ];
+
+export const IPER_STORE = {
+  name: "Iper La grande i",
+  notes:
+    "Cadena confirmada por el usuario. Sus volantinos solo traen promociones y varian por local; no hay API publica de precios. Carga precios a mano o por CSV.",
+};
 
 export const profileRules: { kind: "allergy" | "avoid" | "restriction" | "staple"; value: string }[] = [
   { kind: "avoid", value: "brocoli" },

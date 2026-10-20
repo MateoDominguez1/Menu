@@ -297,6 +297,58 @@ describe("plan y lista de compras sobre base real", () => {
     ).rejects.toThrow();
   });
 
+  it("los datos de referencia de Iper se agregan a una base vieja una sola vez y sin pisar nada", async () => {
+    const { applyReferenceData } = await import("@/db/seed");
+    const iper = (await m.db.select().from(m.s.stores)).find((x) => x.slug === "iper")!;
+    expect(iper.name).toBe("Iper La grande i");
+    // Simula una base anterior: tienda con el nombre viejo y sin productos de Iper.
+    const old = await m.db.select().from(m.s.products).where(m.eq(m.s.products.storeId, iper.id));
+    for (const p of old) await m.db.delete(m.s.products).where(m.eq(m.s.products.id, p.id));
+    await m.db.update(m.s.stores).set({ name: "Iper" }).where(m.eq(m.s.stores.id, iper.id));
+
+    const first = await applyReferenceData(m.db);
+    expect(first.added).toBeGreaterThanOrEqual(3);
+    expect((await m.db.select().from(m.s.stores).where(m.eq(m.s.stores.id, iper.id)))[0].name).toBe("Iper La grande i");
+    const second = await applyReferenceData(m.db);
+    expect(second.added).toBe(0);
+    const prods = await m.db.select().from(m.s.products).where(m.eq(m.s.products.storeId, iper.id));
+    const prices = await m.db.select().from(m.s.priceRecords);
+    const mine = prices.filter((p) => prods.some((x) => x.id === p.productId));
+    expect(mine.every((p) => p.validUntil === "2026-10-25" && !!p.sourceRef)).toBe(true);
+  });
+
+  it("agregar un producto de Iper con precio confirmado normaliza el tamano y alimenta la comparacion", async () => {
+    const data = await (await import("./catalog")).loadCatalog();
+    const iper = data.stores.find((x) => x.slug === "iper")!;
+    const arroz = [...data.ingredients.values()].find((i) => i.name === "Arroz")!;
+    const res = await m.actions.addProductAction({
+      storeId: iper.id,
+      ingredientId: arroz.id,
+      name: "Riso test 1 kg",
+      brand: "Marca",
+      packSize: 1,
+      packUnit: "kg",
+      soldByWeight: false,
+      priceCents: 99,
+    });
+    const [p] = await m.db.select().from(m.s.products).where(m.eq(m.s.products.id, res.productId));
+    expect(p.packSize).toBe(1000);
+    expect(p.packUnit).toBe("g");
+    const recs = await m.db.select().from(m.s.priceRecords).where(m.eq(m.s.priceRecords.productId, p.id));
+    expect(recs[0].confirmedByUser).toBe(true);
+    // Repetir el mismo producto reutiliza el registro y suma un precio nuevo.
+    const again = await m.actions.addProductAction({
+      storeId: iper.id, ingredientId: arroz.id, name: "Riso test 1 kg", packSize: 1, packUnit: "kg", priceCents: 95,
+    });
+    expect(again.productId).toBe(res.productId);
+    await expect(
+      m.actions.addProductAction({ storeId: iper.id, ingredientId: arroz.id, name: "x", packSize: 0, packUnit: "g", priceCents: 1 }),
+    ).rejects.toThrow();
+    await expect(
+      m.actions.addProductAction({ storeId: iper.id, ingredientId: arroz.id, name: "x", packSize: 1, packUnit: "ml", priceCents: 1 }),
+    ).rejects.toThrow();
+  });
+
   it("la importacion CSV agrega productos y precios y reporta filas con error", async () => {
     const csv = [
       "tienda,ingrediente,producto,marca,tamano,unidad,precio,promo,vigente_hasta,fecha,fuente,al_peso",

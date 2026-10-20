@@ -519,6 +519,76 @@ export async function addPriceAction(input: z.input<typeof addPriceSchema>) {
   refreshAll();
 }
 
+const addProductSchema = z.object({
+  storeId: id,
+  ingredientId: id,
+  name: z.string().trim().min(1).max(120),
+  brand: z.string().trim().max(60).nullable().optional(),
+  packSize: z.number().positive().max(1_000_000),
+  packUnit: z.string().max(8),
+  soldByWeight: z.boolean().default(false),
+  priceCents: cents,
+  promoPriceCents: cents.nullable().optional(),
+  validUntil: z.string().refine((v) => v === "" || isValidISODate(v)).nullable().optional(),
+});
+
+/** Agrega un producto de supermercado (o reutiliza el igual) con un precio confirmado por el usuario. */
+export async function addProductAction(input: z.input<typeof addProductSchema>): Promise<{ productId: number }> {
+  await requireAuth();
+  const v = addProductSchema.parse(input);
+  const db = getDb();
+  const data = await loadCatalog();
+  const ing = data.ingredients.get(v.ingredientId);
+  if (!ing) throw new Error("Ingrediente inexistente");
+  if (!data.stores.some((st) => st.id === v.storeId)) throw new Error("Tienda inexistente");
+  const packSize = toBaseQuantity(v.packSize, v.packUnit, ing);
+  if (packSize <= 0) throw new Error("El tamano del envase debe ser mayor a cero");
+
+  const existing = (
+    await db
+      .select()
+      .from(s.products)
+      .where(
+        and(
+          eq(s.products.storeId, v.storeId),
+          eq(s.products.ingredientId, v.ingredientId),
+          eq(s.products.name, v.name),
+        ),
+      )
+  )[0];
+  const productId =
+    existing?.id ??
+    (
+      await db
+        .insert(s.products)
+        .values({
+          storeId: v.storeId,
+          ingredientId: v.ingredientId,
+          name: v.name,
+          brand: v.brand ? v.brand : null,
+          packSize,
+          packUnit: ing.baseUnit,
+          soldByWeight: v.soldByWeight,
+        })
+        .returning()
+    )[0].id;
+  await db.insert(s.priceRecords).values({
+    productId,
+    priceCents: v.priceCents,
+    promoPriceCents: v.promoPriceCents ?? null,
+    validUntil: v.validUntil ? v.validUntil : null,
+    sourceKind: "user_confirmed",
+    sourceRef: "Cargado y confirmado por el usuario",
+    observedAt: todayISO(),
+    confirmedByUser: true,
+    isEstimate: false,
+  });
+  const open = await db.select().from(s.shoppingLists).where(eq(s.shoppingLists.status, "open"));
+  for (const l of open) await repriceList(l.id);
+  refreshAll();
+  return { productId };
+}
+
 export async function importPricesCsvAction(csv: string): Promise<{ imported: number; errors: string[] }> {
   await requireAuth();
   const text = z.string().max(500_000).parse(csv);

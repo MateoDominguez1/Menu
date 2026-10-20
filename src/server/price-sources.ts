@@ -30,9 +30,15 @@ export const PRICE_SOURCES: PriceSource[] = [
   },
   {
     id: "iper-online",
-    label: "Iper (catalogo)",
+    label: "Iper La grande i (catalogo y volantino)",
     status: "unavailable",
-    note: "Hay varias cadenas llamadas Iper (La grande i, Carrefour Iper, Ipercoop) y ninguna ofrece una API publica de precios. Falta que confirmes cual usas.",
+    note: "Sin API ni feed publico. El visor oficial de volantinos es una pagina dinamica que no se puede leer desde afuera, y los sitios que lo resumen solo muestran unas pocas ofertas destacadas. Ademas los volantinos traen solo promociones y varian por local.",
+  },
+  {
+    id: "flyer-import",
+    label: "Importacion asistida de volantinos",
+    status: "unavailable",
+    note: "Posible: subir o pegar las paginas del volantino y que una IA proponga los precios para revisarlos antes de importar. Requiere una clave de Anthropic en el servidor y todavia no esta construido.",
   },
   {
     id: "open-prices",

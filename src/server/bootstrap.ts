@@ -1,6 +1,6 @@
 import { getDb } from "@/db/client";
 import { runMigrations } from "@/db/migrate";
-import { seedDatabase } from "@/db/seed";
+import { applyReferenceData, seedDatabase } from "@/db/seed";
 import { databaseToken, databaseUrl } from "./config";
 
 const g = globalThis as unknown as { __dbReady?: Promise<void> };
@@ -11,6 +11,7 @@ export function ensureDb(): Promise<void> {
     g.__dbReady = (async () => {
       await runMigrations(databaseUrl(), databaseToken());
       await seedDatabase(getDb());
+      await applyReferenceData(getDb());
     })().catch((e) => {
       g.__dbReady = undefined;
       throw e;

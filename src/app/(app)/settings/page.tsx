@@ -79,7 +79,14 @@ export default async function SettingsPage() {
               </li>
             ))}
           </ul>
-          <PricesPanel products={products} csvHeader={CSV_HEADER} />
+          <PricesPanel
+            products={products}
+            csvHeader={CSV_HEADER}
+            stores={data.stores.map((st) => ({ id: st.id, name: st.name }))}
+            ingredients={[...data.ingredients.values()]
+              .sort((a, b) => a.name.localeCompare(b.name, "es"))
+              .map((i) => ({ id: i.id, name: i.name, baseUnit: i.baseUnit }))}
+          />
         </Card>
 
         <Card>

@@ -2,7 +2,9 @@ import { databaseToken, databaseUrl } from "@/server/config";
 import { createDb, type Db } from "./client";
 import { runMigrations } from "./migrate";
 import * as s from "./schema";
+import { and, eq } from "drizzle-orm";
 import {
+  IPER_STORE,
   NUTRITION_SOURCE,
   ingredients as seedIngredients,
   products as seedProducts,
@@ -29,12 +31,7 @@ export async function seedDatabase(db: Db): Promise<{ seeded: boolean }> {
     .insert(s.stores)
     .values([
       { slug: "esselunga", name: "Esselunga" },
-      {
-        slug: "iper",
-        name: "Iper",
-        notes:
-          "Pendiente de confirmar la cadena exacta (Iper La grande i, Carrefour Iper, Ipercoop...). Sin precios cargados.",
-      },
+      { slug: "iper", name: IPER_STORE.name, notes: IPER_STORE.notes },
     ])
     .returning();
   const storeId = new Map(storeRows.map((r) => [r.slug, r.id]));
@@ -111,10 +108,62 @@ export async function seedDatabase(db: Db): Promise<{ seeded: boolean }> {
   return { seeded: true };
 }
 
+/**
+ * Datos de referencia para bases que ya existian: actualiza la tienda Iper y agrega los productos
+ * semilla que falten. Es idempotente y nunca pisa precios ni productos cargados por el usuario.
+ */
+export async function applyReferenceData(db: Db): Promise<{ added: number }> {
+  const stores = await db.select().from(s.stores);
+  const iper = stores.find((x) => x.slug === "iper");
+  if (iper && iper.name !== IPER_STORE.name) {
+    await db.update(s.stores).set({ name: IPER_STORE.name, notes: IPER_STORE.notes }).where(eq(s.stores.id, iper.id));
+  }
+  const storeId = new Map(stores.map((x) => [x.slug, x.id]));
+  const ingId = new Map((await db.select().from(s.ingredients)).map((i) => [i.name, i.id]));
+  let added = 0;
+  for (const p of seedProducts) {
+    const sid = storeId.get(p.store);
+    const iid = ingId.get(p.ingredient);
+    if (!sid || !iid) continue;
+    const found = await db
+      .select()
+      .from(s.products)
+      .where(and(eq(s.products.storeId, sid), eq(s.products.ingredientId, iid), eq(s.products.name, p.name)))
+      .limit(1);
+    if (found.length > 0) continue;
+    const [row] = await db
+      .insert(s.products)
+      .values({
+        storeId: sid,
+        ingredientId: iid,
+        name: p.name,
+        brand: p.brand ?? null,
+        packSize: p.packSize,
+        packUnit: p.packUnit,
+        soldByWeight: p.soldByWeight ?? false,
+      })
+      .returning();
+    await db.insert(s.priceRecords).values({
+      productId: row.id,
+      priceCents: p.price.cents,
+      promoPriceCents: p.price.promoCents ?? null,
+      validUntil: p.price.validUntil ?? null,
+      observedAt: p.price.observedAt,
+      sourceKind: p.price.sourceKind,
+      sourceRef: p.price.sourceRef,
+      isEstimate: p.price.isEstimate,
+      confirmedByUser: false,
+    });
+    added += 1;
+  }
+  return { added };
+}
+
 export async function ensureDatabaseReady(url: string, authToken?: string) {
   await runMigrations(url, authToken);
   const { client, db } = createDb(url, authToken);
   const result = await seedDatabase(db);
+  await applyReferenceData(db);
   client.close();
   return result;
 }
