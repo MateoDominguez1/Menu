@@ -56,7 +56,7 @@ export type EntryView = {
 /** Plan pedido por id; si no, el que incluye hoy; si no, el mas reciente. */
 export async function getActivePlan(planId?: number | null) {
   const db = getDb();
-  const all = await db.select().from(s.mealPlans).orderBy(desc(s.mealPlans.weekStart));
+  const all = await db.select().from(s.mealPlans).orderBy(desc(s.mealPlans.weekStart), desc(s.mealPlans.id));
   if (planId) {
     const found = all.find((p) => p.id === planId);
     if (found) return { plan: found, all };
@@ -223,7 +223,7 @@ export async function getTodayMeals(planId: number, data: CatalogData) {
 
 export async function getHistory() {
   const db = getDb();
-  const plans = await db.select().from(s.mealPlans).orderBy(desc(s.mealPlans.weekStart));
+  const plans = await db.select().from(s.mealPlans).orderBy(desc(s.mealPlans.weekStart), desc(s.mealPlans.id));
   const lists = await db.select().from(s.shoppingLists);
   const items = await db.select().from(s.shoppingItems).where(isNull(s.shoppingItems.removedAt));
   return plans.map((p) => {

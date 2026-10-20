@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import * as s from "@/db/schema";
 import { addDays, todayISO } from "@/lib/dates";
+import { recipeNutritionPerServing } from "@/lib/nutrition";
 import {
   estimatePlanCost,
   generatePlan,
@@ -11,7 +12,7 @@ import {
   type PlannerInput,
 } from "@/lib/planner";
 import { aiEnabled, aiPickRecipes } from "./ai";
-import { buildUnitCost, loadCatalog, type CatalogData } from "./catalog";
+import { buildPackInfo, buildUnitCost, loadCatalog, type CatalogData } from "./catalog";
 import { currentDeals, recentHistory, refreshGeneratedRecipes } from "./generated";
 import { recipeCard } from "./queries";
 import { syncShoppingList } from "./sync";
@@ -63,7 +64,17 @@ async function plannerExtras(data: CatalogData, excludePlanId: number | null): P
     const sc = recipeDealScore(r, deals.byIngredient);
     if (sc > 0) dealScores.set(r.id, sc);
   }
-  return { dealScores, recentRecipes: history.recipes, recentIngredients: history.ingredients };
+  const proteinPerServing = new Map<number, number>();
+  for (const r of data.recipes.values()) {
+    proteinPerServing.set(r.id, recipeNutritionPerServing(r, data.ingredients).protein);
+  }
+  return {
+    dealScores,
+    recentRecipes: history.recipes,
+    recentIngredients: history.ingredients,
+    proteinPerServing,
+    packInfo: buildPackInfo(data, today),
+  };
 }
 
 export type GenerateOptions = {

@@ -28,7 +28,21 @@ export type PlannerInput = {
   recentRecipes?: Map<number, number>;
   /** Ingrediente -> veces que se uso en los ultimos dias (para variar proteinas). */
   recentIngredients?: Map<number, number>;
+  /** Gramos de proteina estimados por porcion de cada receta. */
+  proteinPerServing?: Map<number, number>;
+  /** Envase del producto mas barato de cada ingrediente: el costo del plan se calcula con envases enteros. */
+  packInfo?: Map<number, PackInfo>;
 };
+
+export type PackInfo = { packSize: number; cents: number; soldByWeight: boolean };
+
+const STYLE_IGNORE = new Set(["auto", "rapido", "economico", "habitual", "una-sarten"]);
+const PROTEIN_NAMES = new Set(["Mozzarella", "Ricotta", "Scamorza", "Jamon cocido", "Atun al aceite", "Garbanzos", "Frijoles", "Lentejas", "Huevos"]);
+
+/** Estilo de comida (plancha, pasta, ensalada...) para no repetirlo demasiado en un plan. */
+export function styleOf(recipe: RecipeLite): string {
+  return recipe.tags.split(",").map((t) => t.trim()).find((t) => t && !STYLE_IGNORE.has(t)) ?? "otro";
+}
 
 /** Suma por cada ingrediente de la receta que esta en oferta: mas descuento, mas puntaje. */
 export function recipeDealScore(recipe: RecipeLite, deals: Map<number, number>): number {
@@ -98,6 +112,7 @@ export function estimatePlanCost(
   ingredients: Map<number, IngredientLite>,
   pantry: PantryLite[],
   unitCost: Map<number, number>,
+  packInfo?: Map<number, PackInfo>,
 ): { cents: number; unknown: string[] } {
   const needs = buildNeeds(entries, recipes, ingredients, pantry);
   let cents = 0;
@@ -106,6 +121,11 @@ export function estimatePlanCost(
     const c = unitCost.get(n.ingredientId);
     if (c === undefined) {
       if (n.toBuyQty > 0) unknown.push(n.name);
+      continue;
+    }
+    const p = packInfo?.get(n.ingredientId);
+    if (p && !p.soldByWeight && n.toBuyQty > 0) {
+      cents += Math.max(1, Math.ceil(n.toBuyQty / p.packSize - 1e-9)) * p.cents;
     } else cents += c * n.toBuyQty;
   }
   return { cents: Math.round(cents), unknown };
@@ -121,16 +141,41 @@ function pickRecipe(
 ): RecipeLite | null {
   const usage = new Map<number, number>();
   const usedIngredients = new Set<number>();
+  const usedCount = new Map<number, number>();
   const recipeById = new Map(input.recipes.map((r) => [r.id, r]));
   for (const c of chosen) {
     if (c.recipeId === null) continue;
     usage.set(c.recipeId, (usage.get(c.recipeId) ?? 0) + 1);
-    recipeById.get(c.recipeId)?.ingredients.forEach((i) => usedIngredients.add(i.ingredientId));
+    recipeById.get(c.recipeId)?.ingredients.forEach((i) => {
+      usedIngredients.add(i.ingredientId);
+      usedCount.set(i.ingredientId, (usedCount.get(i.ingredientId) ?? 0) + 1);
+    });
   }
   const pantryIds = new Set(
     input.pantry.filter((p) => p.ingredientId !== null && p.quantity > 0).map((p) => p.ingredientId as number),
   );
   const prev = chosen[chosen.length - 1];
+  const styleCount = new Map<string, number>();
+  const mainCount = new Map<number, number>();
+  let meatFish = 0;
+  let filled = 0;
+  const isMain = (ingredientId: number) => {
+    const ing = input.ingredients.get(ingredientId);
+    return !!ing && (ing.category === "carne_pescado" || PROTEIN_NAMES.has(ing.name));
+  };
+  for (const c of chosen) {
+    const rec = c.recipeId === null ? undefined : recipeById.get(c.recipeId);
+    if (!rec) continue;
+    filled += 1;
+    styleCount.set(styleOf(rec), (styleCount.get(styleOf(rec)) ?? 0) + 1);
+    let hasMeat = false;
+    for (const ri of rec.ingredients) {
+      if (isMain(ri.ingredientId)) mainCount.set(ri.ingredientId, (mainCount.get(ri.ingredientId) ?? 0) + 1);
+      if (input.ingredients.get(ri.ingredientId)?.category === "carne_pescado") hasMeat = true;
+    }
+    if (hasMeat) meatFish += 1;
+  }
+  const meatShare = filled === 0 ? 0 : meatFish / filled;
 
   let best: { r: RecipeLite; score: number } | null = null;
   for (const r of candidates) {
@@ -156,8 +201,24 @@ function pickRecipe(
     score -= Math.min(repeated * 3, 18);
     for (const ri of r.ingredients) {
       if (usedIngredients.has(ri.ingredientId)) score += 5;
+      // Reusar ahorra, pero una misma verdura mas de 3 veces cansa.
+      if (input.ingredients.get(ri.ingredientId)?.category === "fruta_verdura") {
+        score -= Math.max(0, (usedCount.get(ri.ingredientId) ?? 0) - 2) * 7;
+      }
       if (pantryIds.has(ri.ingredientId)) score += 6;
     }
+    // Variedad y nutricion: no repetir el mismo estilo ni la misma proteina, y buscar proteina suficiente.
+    score -= (styleCount.get(styleOf(r)) ?? 0) * 22;
+    let sameMain = 0;
+    let rMeat = false;
+    for (const ri of r.ingredients) {
+      if (isMain(ri.ingredientId)) sameMain += mainCount.get(ri.ingredientId) ?? 0;
+      if (input.ingredients.get(ri.ingredientId)?.category === "carne_pescado") rMeat = true;
+    }
+    score -= Math.min(sameMain * 14, 42);
+    const prot = input.proteinPerServing?.get(r.id);
+    if (prot !== undefined) score += Math.max(-25, Math.min(prot - 25, 25)) * 0.9;
+    if (rMeat && meatShare < 0.4) score += 14;
     score += jitter(input.seed, r.id, idx);
     if (!best || score > best.score || (score === best.score && r.id < best.r.id)) {
       best = { r, score };
@@ -197,7 +258,7 @@ export function generatePlan(input: PlannerInput): PlanResult {
   const asEntries = (): PlanEntryLite[] =>
     chosen.map((c) => ({ recipeId: c.recipeId, servings: c.servings, status: "planned" as const }));
   const cost = () =>
-    estimatePlanCost(asEntries(), recipesById, input.ingredients, input.pantry, input.unitCost);
+    estimatePlanCost(asEntries(), recipesById, input.ingredients, input.pantry, input.unitCost, input.packInfo);
 
   let current = cost();
   let guard = 0;

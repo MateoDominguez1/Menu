@@ -400,9 +400,10 @@ describe("plan y lista de compras sobre base real", () => {
         o("Cavolfiore", 149, { category: "fruta_verdura" }),
         o("Lenticchie lessate 400 g", 129, { perKg: false, packSize: 400, packUnit: "g", category: "conservas_despensa" }),
         o("Latte UHT 1 l", 99, { perKg: false, packSize: 1000, packUnit: "ml", category: "lacteos_huevos" }),
+        o("Mazzancolle tropicali cotte 668 g", 1699, { perKg: false, packSize: 668, packUnit: "g", category: "pescado" }),
       ],
     });
-    expect(res.imported).toBe(7);
+    expect(res.imported).toBe(8);
     expect(res.linkedToIngredients).toBeGreaterThanOrEqual(6);
     expect((await relinkOffers()).linked).toBe(0); // idempotente
 
@@ -424,6 +425,10 @@ describe("plan y lista de compras sobre base real", () => {
     expect(["Pollo muslo", "Dorada", "Salchicha fresca", "Hinojo", "Coliflor", "Lentejas"].some((n) => used.has(n))).toBe(true);
     const list = await items(first.listId);
     expect(list.some((x) => x.estPriceCents !== null && x.priceStatus === "estimated")).toBe(true);
+    // Un envase carisimo para una persona no se usa, y todo lo compuesto se puede costear.
+    expect(used.has("Gambas")).toBe(false);
+    const generatedIngredients = list.filter((x) => x.ingredientId !== null && x.toBuyQty > 0 && used.has(nameOf.get(x.ingredientId)!));
+    expect(generatedIngredients.filter((x) => x.priceStatus === "unknown")).toEqual([]);
 
     // La semana siguiente no repite las mismas comidas.
     const second = await m.plans.generateWeekPlan({ weekStart: "2031-01-13", days: 7, budgetCents: 4300, skips: [], seed: 12 });

@@ -54,7 +54,8 @@ export async function getOrCreateList(planId: number): Promise<number> {
     .where(eq(s.shoppingLists.planId, planId))
     .limit(1);
   if (existing[0]) return existing[0].id;
-  const [row] = await db.insert(s.shoppingLists).values({ planId }).returning();
+  // "Dividir" toma el precio mas barato de cada producto entre las tiendas: lo natural cuando se compra segun ofertas.
+  const [row] = await db.insert(s.shoppingLists).values({ planId, strategy: "split" }).returning();
   return row.id;
 }
 

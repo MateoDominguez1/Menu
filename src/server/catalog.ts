@@ -155,3 +155,19 @@ export function buildUnitCost(data: CatalogData, today: string): Map<number, num
   }
   return out;
 }
+
+/** Envase y precio del producto mas barato por unidad de cada ingrediente (para costear con envases enteros). */
+export function buildPackInfo(data: CatalogData, today: string): Map<number, { packSize: number; cents: number; soldByWeight: boolean }> {
+  const out = new Map<number, { packSize: number; cents: number; soldByWeight: boolean }>();
+  for (const [ingredientId, products] of data.catalog.productsByIngredient) {
+    let best: { perUnit: number; packSize: number; cents: number; soldByWeight: boolean } | null = null;
+    for (const p of products) {
+      const resolved = pickBestPrice(data.catalog.pricesByProduct.get(p.id) ?? [], today);
+      if (!resolved) continue;
+      const perUnit = resolved.cents / p.packSize;
+      if (!best || perUnit < best.perUnit) best = { perUnit, packSize: p.packSize, cents: resolved.cents, soldByWeight: p.soldByWeight };
+    }
+    if (best) out.set(ingredientId, { packSize: best.packSize, cents: best.cents, soldByWeight: best.soldByWeight });
+  }
+  return out;
+}

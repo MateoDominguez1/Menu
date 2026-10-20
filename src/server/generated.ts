@@ -3,7 +3,10 @@ import { getDb } from "@/db/client";
 import * as s from "@/db/schema";
 import { addDays, todayISO } from "@/lib/dates";
 import { composeRecipes } from "@/lib/composer";
-import { loadCatalog } from "./catalog";
+import { buildPackInfo, loadCatalog } from "./catalog";
+
+/** Un envase mas caro que esto (en centimos) no se usa para componer comidas. */
+const MAX_PACK_CENTS = 900;
 
 export type DealInfo = {
   /** ingredientId -> mayor descuento (0-100) entre las ofertas vigentes. */
@@ -59,8 +62,20 @@ export async function refreshGeneratedRecipes(seed: number): Promise<{ created: 
 
   const existing = await db.select({ name: s.recipes.name }).from(s.recipes);
   const ingByName = new Map([...data.ingredients.values()].map((i) => [i.name, i]));
+  // Solo se compone con lo que se puede comprar y costear: ingredientes de la despensa fija, o con precio vigente
+  // y un envase razonable para una persona (un envase de mariscos de 17 EUR no entra en un presupuesto semanal).
+  const packs = buildPackInfo(data, today);
+  const available = new Set(
+    [...ingByName.values()]
+      .filter((i) => {
+        if (data.staples.has(i.id)) return true;
+        const p = packs.get(i.id);
+        return p !== undefined && (p.soldByWeight || p.cents <= MAX_PACK_CENTS);
+      })
+      .map((i) => i.name),
+  );
   const composed = composeRecipes({
-    available: new Set(ingByName.keys()),
+    available,
     deals: deals.byName,
     avoid: data.avoid,
     existingNames: new Set(existing.map((r) => r.name.toLowerCase())),
