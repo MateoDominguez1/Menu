@@ -455,6 +455,31 @@ describe("plan y lista de compras sobre base real", () => {
     expect(after.stapleNeeds.map((n) => n.ingredientId)).not.toContain(target.ingredientId);
   });
 
+  it("se puede buscar una comida por nombre y poner una propia en el plan", async () => {
+    const found = await m.actions.searchRecipesAction("sandwich jamón queso");
+    expect(found.map((x) => x.name)).toContain("Sandwich de jamon y queso");
+    expect(await m.actions.searchRecipesAction("x")).toEqual([]);
+
+    const r = await m.plans.generateWeekPlan({ weekStart: "2031-04-07", days: 2, budgetCents: 4300, skips: [], seed: 3 });
+    const entries = await m.db.select().from(m.s.mealPlanEntries).where(m.eq(m.s.mealPlanEntries.planId, r.planId));
+    const target = entries.find((e) => e.status === "planned")!;
+    const catalog = await (await import("./catalog")).loadCatalog();
+    const pan = [...catalog.ingredients.values()].find((i) => i.name === "Pan de molde")!;
+    const own = await (await import("./recipe-actions")).saveRecipeAction({
+      name: "Tostado casero",
+      mealType: target.slot,
+      minutes: 7,
+      servings: 1,
+      instructions: "Tostar el pan\nAgregar el queso",
+      tags: "",
+      items: [{ ingredientId: pan.id, quantity: 80, unit: "g" }],
+    });
+    await m.actions.swapEntryAction({ entryId: target.id, recipeId: own.id });
+    const after = (await m.db.select().from(m.s.mealPlanEntries).where(m.eq(m.s.mealPlanEntries.id, target.id)))[0];
+    expect(after.recipeId).toBe(own.id);
+    expect((await m.actions.searchRecipesAction("tostado casero")).map((x) => x.id)).toContain(own.id);
+  });
+
   it("la importacion CSV agrega productos y precios y reporta filas con error", async () => {
     const csv = [
       "tienda,ingrediente,producto,marca,tamano,unidad,precio,promo,vigente_hasta,fecha,fuente,al_peso",

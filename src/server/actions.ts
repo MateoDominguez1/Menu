@@ -81,6 +81,21 @@ export async function getAlternativesAction(entryId: number) {
   return alternativesFor(id.parse(entryId));
 }
 
+const plain = (t: string) => t.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+/** Busca entre todas las recetas por nombre (sin acentos ni mayusculas) para elegir una a mano. */
+export async function searchRecipesAction(query: string) {
+  await requireAuth();
+  const words = plain(z.string().max(80).parse(query)).split(/\s+/).filter((w) => w.length > 1);
+  if (words.length === 0) return [];
+  const data = await loadCatalog();
+  return [...data.recipes.values()]
+    .filter((r) => !data.discardedIds.has(r.id) && words.every((w) => plain(r.name).includes(w)))
+    .sort((a, b) => Number(data.favoriteIds.has(b.id)) - Number(data.favoriteIds.has(a.id)) || a.name.length - b.name.length)
+    .slice(0, 8)
+    .map((r) => ({ id: r.id, name: r.name, minutes: r.minutes }));
+}
+
 export async function swapEntryAction(input: { entryId: number; recipeId: number }) {
   await requireAuth();
   const v = z.object({ entryId: id, recipeId: id }).parse(input);

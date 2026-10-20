@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { CATEGORY_LABEL, SLOT_LABEL, btnPrimary, btnSecondary, input } from "@/components/ui";
-import { createIngredientAction, saveRecipeAction } from "@/server/recipe-actions";
+import { swapEntryAction } from "@/server/actions";
+import { createIngredientAction, draftRecipeAction, saveRecipeAction } from "@/server/recipe-actions";
 
 type Ing = { id: number; name: string; baseUnit: "g" | "ml" | "unit" };
 type Row = { key: number; ingredientId: string; quantity: string; unit: string };
@@ -25,9 +26,15 @@ const defaultUnit = (u: Ing["baseUnit"]) => u;
 export function RecipeForm({
   initial,
   ingredients: initialIngredients,
+  aiAvailable = false,
+  assign,
 }: {
   initial: RecipeFormInitial;
   ingredients: Ing[];
+  /** Hay clave de IA en el servidor: se ofrece sugerir ingredientes y preparacion. */
+  aiAvailable?: boolean;
+  /** Si viene de "Cambiar receta": al guardar, la receta queda en esa comida del plan. */
+  assign?: { entryId: number; back: string };
 }) {
   const router = useRouter();
   const [ingredients, setIngredients] = useState(initialIngredients);
@@ -83,10 +90,45 @@ export function RecipeForm({
               unit: r.unit,
             })),
         });
-        router.push(`/recipes/${res.id}`);
+        if (assign) {
+          await swapEntryAction({ entryId: assign.entryId, recipeId: res.id });
+          router.push(assign.back);
+        } else {
+          router.push(`/recipes/${res.id}`);
+        }
         router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "No se pudo guardar");
+      }
+    });
+
+  const [note, setNote] = useState<string | null>(null);
+  const suggest = () =>
+    start(async () => {
+      setError(null);
+      setNote(null);
+      try {
+        const res = await draftRecipeAction(name);
+        if (!res.ok) {
+          setError(res.reason);
+          return;
+        }
+        setMinutes(String(res.minutes));
+        setInstructions(res.instructions);
+        setRows(
+          res.items.map((it, i) => ({
+            key: nextKey + i,
+            ingredientId: String(it.ingredientId),
+            quantity: String(it.quantity),
+            unit: ingredients.find((x) => x.id === it.ingredientId)?.baseUnit ?? "g",
+          })),
+        );
+        setNextKey((k) => k + res.items.length);
+        setNote(
+          `Sugerencia de la IA: revisala antes de guardar.${res.missing.length > 0 ? ` Le faltan en el catalogo: ${res.missing.join(", ")} (podes crearlos abajo).` : ""}`,
+        );
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "No se pudo pedir la sugerencia");
       }
     });
 
@@ -127,6 +169,14 @@ export function RecipeForm({
         <span className={S}>Nombre</span>
         <input className={input} value={name} onChange={(e) => setName(e.target.value)} />
       </label>
+      {aiAvailable && (
+        <div>
+          <button className={btnSecondary} onClick={suggest} disabled={pending || name.trim().length < 2}>
+            Sugerir ingredientes y preparacion con IA
+          </button>
+          {note && <p className="mt-2 text-xs text-stone-500">{note}</p>}
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-3">
         <label className="text-sm">
           <span className={S}>Tipo</span>

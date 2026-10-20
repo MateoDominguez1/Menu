@@ -7,6 +7,7 @@ import { getDb } from "@/db/client";
 import * as s from "@/db/schema";
 import { toBaseQuantity } from "@/lib/units";
 import { requireAuth } from "./auth";
+import { aiDraftRecipe, aiEnabled } from "./ai";
 import { loadCatalog } from "./catalog";
 import { syncShoppingList } from "./sync";
 
@@ -87,6 +88,20 @@ export async function saveRecipeAction(input: z.input<typeof recipeSchema>): Pro
   await resyncPlansUsing(recipeId);
   revalidatePath("/", "layout");
   return { id: recipeId };
+}
+
+/** Sugiere ingredientes y preparacion para un plato con IA (solo si hay clave en el servidor). */
+export async function draftRecipeAction(dish: string): Promise<
+  { ok: true; minutes: number; instructions: string; items: { ingredientId: number; quantity: number }[]; missing: string[] } | { ok: false; reason: string }
+> {
+  await requireAuth();
+  const name = z.string().trim().min(2).max(100).parse(dish);
+  if (!aiEnabled()) return { ok: false, reason: "No hay clave de IA configurada en el servidor." };
+  const data = await loadCatalog();
+  const ingredients = [...data.ingredients.values()].map((i) => ({ id: i.id, name: i.name, baseUnit: i.baseUnit }));
+  const draft = await aiDraftRecipe(name, ingredients);
+  if (!draft) return { ok: false, reason: "La IA no devolvio una receta valida. Proba de nuevo o cargala a mano." };
+  return { ok: true, ...draft };
 }
 
 export async function duplicateRecipeAction(recipeId: number): Promise<{ id: number }> {

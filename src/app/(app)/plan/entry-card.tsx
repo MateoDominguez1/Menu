@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Badge, Card, SKIP_LABEL, SLOT_LABEL, btnDanger, btnSecondary } from "@/components/ui";
 import { formatDayShort } from "@/lib/dates";
@@ -10,6 +11,7 @@ import {
   clearEntryAction,
   duplicateEntryAction,
   getAlternativesAction,
+  searchRecipesAction,
   setEatenAction,
   setRecipePrefAction,
   setServingsAction,
@@ -47,6 +49,17 @@ export function EntryCard({
         setError(e instanceof Error ? e.message : "Error");
       }
     });
+
+  const [query, setQuery] = useState("");
+  const [found, setFound] = useState<Alt[]>([]);
+  const router = useRouter();
+
+  /** Abre el formulario de receta con el nombre escrito; al guardar, la receta queda en esta comida. */
+  const createOwn = () => {
+    const back = `${window.location.pathname}${window.location.search}`;
+    const params = new URLSearchParams({ name: query.trim(), entry: String(entry.id), slot: entry.slot, back });
+    router.push(`/recipes/new?${params.toString()}`);
+  };
 
   const r = entry.recipe;
   const skipped = entry.status === "skipped";
@@ -212,6 +225,43 @@ export function EntryCard({
               >
                 Copiar aqui
               </button>
+            </div>
+          )}
+
+          {alts && (
+            <div className="flex flex-col gap-2 rounded-xl bg-stone-50 p-2.5 dark:bg-stone-800/50">
+              <p className="text-xs text-stone-500">¿Se te ocurrió otra? Escribí el plato (ej. sándwich de jamón y queso):</p>
+              <input
+                className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm dark:border-stone-700 dark:bg-stone-900"
+                placeholder="Escribir una comida..."
+                value={query}
+                onChange={(e) => {
+                  const q = e.target.value;
+                  setQuery(q);
+                  run(async () => setFound(await searchRecipesAction(q)));
+                }}
+              />
+              {found.map((a) => (
+                <button
+                  key={a.id}
+                  className="flex items-center justify-between rounded-xl border border-stone-200 bg-white px-3 py-2 text-left text-sm hover:border-emerald-600 dark:border-stone-700 dark:bg-stone-900"
+                  onClick={() =>
+                    run(async () => {
+                      await swapEntryAction({ entryId: entry.id, recipeId: a.id });
+                      setAlts(null);
+                      setMenu(false);
+                    })
+                  }
+                >
+                  <span>{a.name}</span>
+                  <span className="text-xs text-stone-500">{a.minutes} min</span>
+                </button>
+              ))}
+              {query.trim().length > 1 && (
+                <button className={btnSecondary} onClick={() => createOwn()}>
+                  {found.length === 0 ? "No la encontré: " : "Ninguna es: "}crear «{query.trim()}» con su preparación
+                </button>
+              )}
             </div>
           )}
 
