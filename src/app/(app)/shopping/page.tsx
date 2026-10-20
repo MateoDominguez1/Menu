@@ -24,7 +24,7 @@ export default async function ShoppingPage({
       </>
     );
   }
-  const { list, items, data } = await getListView(plan.id);
+  const { list, items, data, stapleNeeds } = await getListView(plan.id);
   return (
     <ShoppingList
       listId={list.id}
@@ -35,6 +35,7 @@ export default async function ShoppingPage({
       planLabel={`${plan.weekStart} (${plan.days} dias)`}
       stores={data.stores.map((s) => ({ slug: s.slug, name: s.name }))}
       items={items}
+      stapleNeeds={stapleNeeds}
     />
   );
 }

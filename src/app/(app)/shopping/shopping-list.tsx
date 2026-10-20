@@ -24,6 +24,7 @@ import {
   restoreItemAction,
   setStrategyAction,
   toggleItemAction,
+  unmarkStapleAction,
   updateItemAction,
 } from "@/server/actions";
 
@@ -36,6 +37,8 @@ type Props = {
   planLabel: string;
   stores: { slug: string; name: string }[];
   items: ItemView[];
+  /** Ingredientes del plan que no se compran porque estan marcados como "siempre en casa". */
+  stapleNeeds: { ingredientId: number; name: string }[];
 };
 
 type ToggleOp = { itemId: number; checked: boolean };
@@ -326,6 +329,30 @@ export function ShoppingList(props: Props) {
                   run={run}
                   disabled={done}
                 />
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {props.stapleNeeds.length > 0 && !shopMode && !done && (
+          <section className="rounded-2xl border border-dashed border-stone-300 p-3 dark:border-stone-700">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">Dado por tenido en casa</h2>
+            <p className="mb-2 mt-1 text-xs text-stone-500">
+              Las recetas los usan, pero no estan en la lista porque figuran como &quot;siempre en casa&quot;. Si no los tenes, tocá Comprar.
+            </p>
+            <ul className="flex flex-col gap-1">
+              {props.stapleNeeds.map((n) => (
+                <li key={n.ingredientId} className="flex items-center justify-between gap-2 text-sm">
+                  <span>
+                    {italianName(n.name)} <span className="text-stone-400">· {n.name}</span>
+                  </span>
+                  <button
+                    className="text-emerald-700 underline dark:text-emerald-400"
+                    onClick={() => run(() => unmarkStapleAction({ ingredientId: n.ingredientId, listId: props.listId }))}
+                  >
+                    Comprar
+                  </button>
+                </li>
               ))}
             </ul>
           </section>

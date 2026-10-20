@@ -438,6 +438,23 @@ describe("plan y lista de compras sobre base real", () => {
     expect(repeated).toBeLessThan(next.length / 2);
   });
 
+  it("lo marcado como siempre en casa se avisa en la lista y se puede pasar a comprar", async () => {
+    const r = await m.plans.generateWeekPlan({ weekStart: "2031-03-03", days: 3, budgetCents: 4300, skips: [], seed: 21 });
+    const before = await items(r.listId);
+    const target = before.find((x) => x.ingredientId !== null && x.toBuyQty > 0 && !x.removedAt)!;
+    await m.db.insert(m.s.profileRules).values({ kind: "staple", value: target.name });
+    await m.sync.syncShoppingList(r.planId);
+
+    const view = await m.q.getListView(r.planId);
+    expect(view.items.find((x) => x.ingredientId === target.ingredientId && !x.removed && x.toBuyQty > 0)).toBeUndefined();
+    expect(view.stapleNeeds.map((n) => n.ingredientId)).toContain(target.ingredientId);
+
+    await m.actions.unmarkStapleAction({ ingredientId: target.ingredientId!, listId: r.listId });
+    const after = await m.q.getListView(r.planId);
+    expect(after.items.some((x) => x.ingredientId === target.ingredientId && !x.removed && x.toBuyQty > 0)).toBe(true);
+    expect(after.stapleNeeds.map((n) => n.ingredientId)).not.toContain(target.ingredientId);
+  });
+
   it("la importacion CSV agrega productos y precios y reporta filas con error", async () => {
     const csv = [
       "tienda,ingrediente,producto,marca,tamano,unidad,precio,promo,vigente_hasta,fecha,fuente,al_peso",

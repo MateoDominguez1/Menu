@@ -495,6 +495,24 @@ export async function addRuleAction(input: { kind: "allergy" | "avoid" | "restri
   refreshAll();
 }
 
+/** Deja de tratar un ingrediente como "siempre en casa" y lo agrega a la lista de compras del plan. */
+export async function unmarkStapleAction(input: { ingredientId: number; listId: number }) {
+  await requireAuth();
+  const v = z.object({ ingredientId: id, listId: id }).parse(input);
+  const db = getDb();
+  const [ing] = await db.select().from(s.ingredients).where(eq(s.ingredients.id, v.ingredientId));
+  const [list] = await db.select().from(s.shoppingLists).where(eq(s.shoppingLists.id, v.listId));
+  if (!ing || !list) throw new Error("No existe");
+  const rules = await db.select().from(s.profileRules).where(eq(s.profileRules.kind, "staple"));
+  for (const r of rules) {
+    if (r.value.toLowerCase() === ing.name.toLowerCase()) {
+      await db.delete(s.profileRules).where(eq(s.profileRules.id, r.id));
+    }
+  }
+  await syncShoppingList(list.planId);
+  refreshAll();
+}
+
 export async function deleteRuleAction(ruleId: number) {
   await requireAuth();
   await getDb().delete(s.profileRules).where(eq(s.profileRules.id, id.parse(ruleId)));

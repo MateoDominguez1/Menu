@@ -10,6 +10,7 @@ import {
 } from "@/lib/pricing";
 import { recipeNutritionPerServing, sumNutrition, type Nutrition } from "@/lib/nutrition";
 import { recipeCostPerServing } from "@/lib/planner";
+import { buildNeeds } from "@/lib/shopping";
 import { buildUnitCost, loadCatalog, type CatalogData } from "./catalog";
 import { getOrCreateList } from "./sync";
 
@@ -173,7 +174,17 @@ export async function getListView(planId: number) {
         : null,
     };
   });
-  return { list, items, data };
+  // Lo que el plan usa pero NO entra en la lista porque esta marcado como "siempre en casa".
+  const entries = await db.select().from(s.mealPlanEntries).where(eq(s.mealPlanEntries.planId, planId));
+  const stapleNeeds = buildNeeds(
+    entries.map((e) => ({ recipeId: e.recipeId, servings: e.servings, status: e.status })),
+    data.recipes,
+    data.ingredients,
+    data.pantry,
+  )
+    .filter((n) => data.staples.has(n.ingredientId) && n.toBuyQty > 0)
+    .map((n) => ({ ingredientId: n.ingredientId, name: n.name }));
+  return { list, items, data, stapleNeeds };
 }
 
 export function listTotals(items: ItemView[]) {
