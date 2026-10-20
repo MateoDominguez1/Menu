@@ -151,7 +151,7 @@ describe("parseEsselungaPage", () => {
     ...esselungaCell(34.3, 100, ["PASTA DI SEMOLA", "VOIELLO"], ["500 g"], "1,49", ["1,48"], "50", "0", "74"),
     ...esselungaCell(300.8, 100, ["MOZZARELLA", "GRANAROLO"], ["4x100 g"], "4,78", ["5,98"], "50", "2", "39"),
   ];
-  const offers = parseEsselungaPage(page(items, 5), "SCONTI FINO AL 50%");
+  const offers = parseEsselungaPage(page(items, 5));
 
   it("lee el precio partido en entero y decimales y el precio habitual", () => {
     expect(offers).toHaveLength(2);
